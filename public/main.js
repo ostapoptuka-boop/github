@@ -1,5 +1,35 @@
 
         // ==========================================
+        // API LAYER — CONNECTION TO BACKEND
+        // ==========================================
+        const API_BASE = '/api';
+        let authToken = localStorage.getItem('trustAuthToken') || null;
+
+        async function apiCall(endpoint, method, body) {
+            try {
+                const opts = {
+                    method: method || 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                };
+                if (authToken) opts.headers['Authorization'] = 'Bearer ' + authToken;
+                if (body) opts.body = JSON.stringify(body);
+                const res = await fetch(API_BASE + endpoint, opts);
+                const data = await res.json();
+                if (res.status === 401 && data.error === 'Сессия истекла, войдите снова') {
+                    authToken = null;
+                    localStorage.removeItem('trustAuthToken');
+                    isAuth = false;
+                    checkAuthUI();
+                    showCustomAlert('Сессия истекла', 'Войдите снова', 'warning');
+                }
+                return { ok: res.ok, status: res.status, data };
+            } catch (err) {
+                console.error('API Error:', err);
+                return { ok: false, status: 0, data: { error: 'Ошибка сети. Проверьте подключение.' } };
+            }
+        }
+
+        // ==========================================
         // БАЗОВАЯ ЛОГИКА (БАЛАНС, ПОРТФЕЛЬ, АВТОРИЗАЦИЯ)
         // ==========================================
         let trustMainBalance = parseFloat(localStorage.getItem('trustMainBalance')) || 0.00;
@@ -56,6 +86,33 @@
             if (hBadge) hBadge.style.display = isVerified ? 'flex' : 'none';
         }
         updateHeaderVerBadge();
+
+        // Auto-load user data from server if token exists
+        if (authToken) {
+            (async function loadUserFromServer() {
+                var result = await apiCall('/auth/me', 'GET');
+                if (result.ok && result.data.user) {
+                    var user = result.data.user;
+                    isAuth = true;
+                    localStorage.setItem('trustIsAuth', 'true');
+                    localStorage.setItem('trustUserName', user.name);
+                    localStorage.setItem('trustUserId', user.trustId);
+                    localStorage.setItem('trustUserEmail', user.email);
+                    localStorage.setItem('trustUserRole', user.role);
+                    if (user.emailVerified) localStorage.setItem('trustUserVerified', 'true');
+                    trustMainBalance = user.balanceUSDT || 0;
+                    localStorage.setItem('trustMainBalance', trustMainBalance);
+                    updateBalanceUI();
+                    checkAuthUI();
+                } else {
+                    authToken = null;
+                    localStorage.removeItem('trustAuthToken');
+                    isAuth = false;
+                    localStorage.setItem('trustIsAuth', 'false');
+                    checkAuthUI();
+                }
+            })();
+        }
 
         // ==========================================
         // 12 LOGO CLICKS → TOGGLE ADMIN PANEL
@@ -166,39 +223,63 @@
             }
         }
 
-        function fakeLogin() {
+        async function fakeLogin() {
+            const emailInp = document.getElementById('logEmail').value.trim();
+            const passInp = document.getElementById('logPass').value;
+            const twoFAInp = document.getElementById('log2FA');
+            
+            if (!emailInp || !passInp) return showCustomAlert('Ошибка', 'Введите email и пароль', 'error');
+
+            // Show loading
+            var loginBtn = document.querySelector('#loginForm .btn-primary');
+            var origText = loginBtn ? loginBtn.textContent : '';
+            if (loginBtn) { loginBtn.textContent = 'Вход...'; loginBtn.disabled = true; }
+
+            var body = { email: emailInp, password: passInp };
+            if (twoFAInp && twoFAInp.value) body.twoFactorCode = twoFAInp.value;
+
+            var result = await apiCall('/auth/login', 'POST', body);
+
+            if (loginBtn) { loginBtn.textContent = origText; loginBtn.disabled = false; }
+
+            if (result.ok && result.data.requires2FA) {
+                // Show 2FA input
+                var tfWrap = document.getElementById('login2FAWrap');
+                if (tfWrap) tfWrap.style.display = 'block';
+                showCustomAlert('2FA', 'Введите код из Google Authenticator', 'warning');
+                return;
+            }
+
+            if (!result.ok) {
+                return showCustomAlert('Ошибка', result.data.error || 'Ошибка входа', 'error');
+            }
+
+            // Success
+            authToken = result.data.token;
+            localStorage.setItem('trustAuthToken', authToken);
+            
+            var user = result.data.user;
             isAuth = true;
             localStorage.setItem('trustIsAuth', 'true');
-            localStorage.setItem('trustLastSeen', new Date().toISOString());
+            localStorage.setItem('trustUserName', user.name);
+            localStorage.setItem('trustUserId', user.trustId);
+            localStorage.setItem('trustUserEmail', user.email);
+            localStorage.setItem('trustUserRole', user.role);
+            if (user.emailVerified) localStorage.setItem('trustUserVerified', 'true');
+            
+            trustMainBalance = user.balanceUSDT || 0;
+            localStorage.setItem('trustMainBalance', trustMainBalance);
+
             closeModals();
-            
-            const emailInp = document.getElementById('logEmail').value;
-            if(emailInp) {
-                const nameParts = emailInp.split('@')[0];
-                document.getElementById('displayUserName').textContent = nameParts;
-                localStorage.setItem('trustUserName', nameParts);
-            }
-            
-            let trustId = localStorage.getItem('trustUserId');
-            if(!trustId) {
-                trustId = Math.floor(10000 + Math.random() * 90000); 
-                localStorage.setItem('trustUserId', trustId);
-            }
-            
-            // Detect IP
-            fetch('https://api.ipify.org?format=json').then(r=>r.json()).then(d=>{
-                localStorage.setItem('trustUserIP', d.ip || 'Неизвестен');
-            }).catch(()=>{});
-            
             checkAuthUI();
             updateBalanceUI();
-            logUserAction('Вход в аккаунт');
             updateHeaderVerBadge();
             goToDashboard('airdrops');
             renderAirdropsUI();
+            showCustomAlert('Добро пожаловать!', 'Вы вошли как ' + user.name, 'success');
         }
 
-        function fakeReg() {
+        async function fakeReg() {
             const firstName = document.getElementById('regFirstName').value.trim();
             const lastName = document.getElementById('regLastName').value.trim();
             const email = document.getElementById('regEmail').value.trim();
@@ -212,24 +293,56 @@
             if (!emailRegex.test(email)) return showCustomAlert('Ошибка', 'Введите настоящий Email адрес.', 'error');
             if (pass.length < 6) return showCustomAlert('Ошибка', 'Пароль должен содержать минимум 6 символов.', 'error');
 
-            let newId = Math.floor(10000 + Math.random() * 90000); 
-            localStorage.setItem('trustUserId', newId);
-            localStorage.setItem('trustUserEmail', email);
-            localStorage.setItem('trustUserPass', pass);
-            localStorage.setItem('trustUserName', firstName + ' ' + lastName);
+            // Show loading
+            var regBtn = document.querySelector('#regForm .btn-primary');
+            var origText = regBtn ? regBtn.textContent : '';
+            if (regBtn) { regBtn.textContent = 'Регистрация...'; regBtn.disabled = true; }
 
-            showCustomAlert('Успешно!', 'Аккаунт успешно создан! Войдите в систему.', 'success');
-            toggleAuth(); 
+            var result = await apiCall('/auth/register', 'POST', {
+                email: email,
+                password: pass,
+                name: firstName + ' ' + lastName
+            });
+
+            if (regBtn) { regBtn.textContent = origText; regBtn.disabled = false; }
+
+            if (!result.ok) {
+                return showCustomAlert('Ошибка', result.data.error || 'Ошибка регистрации', 'error');
+            }
+
+            // Auto-login after registration
+            authToken = result.data.token;
+            localStorage.setItem('trustAuthToken', authToken);
+
+            var user = result.data.user;
+            isAuth = true;
+            localStorage.setItem('trustIsAuth', 'true');
+            localStorage.setItem('trustUserName', user.name);
+            localStorage.setItem('trustUserId', user.trustId);
+            localStorage.setItem('trustUserEmail', user.email);
+            localStorage.setItem('trustUserRole', user.role);
+
+            trustMainBalance = user.balanceUSDT || 0;
+            localStorage.setItem('trustMainBalance', trustMainBalance);
+
+            closeModals();
+            checkAuthUI();
+            updateBalanceUI();
+            goToDashboard('airdrops');
+            renderAirdropsUI();
+            showCustomAlert('Добро пожаловать!', 'Аккаунт создан! Проверьте email для подтверждения.', 'success');
         }
 
         function logout() {
-            logUserAction('Выход из аккаунта');
-            localStorage.setItem('trustLastSeen', new Date().toISOString());
+            authToken = null;
+            localStorage.removeItem('trustAuthToken');
+            localStorage.removeItem('trustUserRole');
             isAuth = false;
             localStorage.setItem('trustIsAuth', 'false');
             checkAuthUI();
             goHome(); 
             renderAirdropsUI();
+            showCustomAlert('Выход', 'Вы вышли из аккаунта', 'success');
         }
 
         function goToDashboard(tab) {
