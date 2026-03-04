@@ -315,18 +315,19 @@
                 return showCustomAlert('Ошибка', result.data.error || 'Ошибка регистрации', 'error');
             }
 
-            // Auto-login after registration
-            authToken = result.data.token;
-            localStorage.setItem('trustAuthToken', authToken);
+            // Clear fields
+            document.getElementById('regFirstName').value = '';
+            document.getElementById('regLastName').value = '';
+            document.getElementById('regEmail').value = '';
+            document.getElementById('regPass').value = '';
 
-            var user = result.data.user;
-            isAuth = true;
-            localStorage.setItem('trustIsAuth', 'true');
-            localStorage.setItem('trustUserName', user.name);
-            localStorage.setItem('trustUserId', user.trustId);
-            localStorage.setItem('trustUserEmail', user.email);
-            localStorage.setItem('trustUserRole', user.role);
+            // Switch to login form
+            loginForm.style.display = 'block';
+            regForm.style.display = 'none';
 
+<<<<<<< HEAD
+            showCustomAlert('Успешно!', 'Аккаунт успешно создан! Войдите в систему.', 'success');
+=======
             trustMainBalance = user.balanceUSDT || 0;
             localStorage.setItem('trustMainBalance', trustMainBalance);
 
@@ -340,6 +341,7 @@
                 if (alertModal) alertModal.style.zIndex = '99999';
                 showCustomAlert('Добро пожаловать!', 'Аккаунт успешно создан! Добро пожаловать, ' + user.name + '!', 'success');
             }, 800);
+>>>>>>> f503ec56ea4e578dba84efe00468fb9158d376fe
         }
 
         function logout() {
