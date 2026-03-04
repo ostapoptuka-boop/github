@@ -306,54 +306,107 @@ async function fakeReg() {
   const email = document.getElementById("regEmail").value.trim();
   const pass = document.getElementById("regPass").value;
 
+  // ===== VALIDATION =====
   const nameRegex = /^[a-zA-Zа-яА-ЯёЁіІїЇєЄґҐ]{2,30}$/;
-  if (!nameRegex.test(firstName)) return showCustomAlert("Помилка", "Введіть справжнє Імʼя (тільки букви).", "error");
 
-  if (!nameRegex.test(lastName)) return showCustomAlert("Помилка", "Введіть справжнє Прізвище (тільки букви).", "error");
+  if (!nameRegex.test(firstName)) {
+    return showCustomAlert(
+      "Помилка",
+      "Введіть справжнє імʼя (тільки букви).",
+      "error"
+    );
+  }
+
+  if (!nameRegex.test(lastName)) {
+    return showCustomAlert(
+      "Помилка",
+      "Введіть справжнє прізвище (тільки букви).",
+      "error"
+    );
+  }
 
   const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,10}$/;
-  if (!emailRegex.test(email)) return showCustomAlert("Помилка", "Введіть правильний Email.", "error");
 
-  if (pass.length < 6) return showCustomAlert("Помилка", "Пароль мінімум 6 символів.", "error");
+  if (!emailRegex.test(email)) {
+    return showCustomAlert(
+      "Помилка",
+      "Введіть правильний Email.",
+      "error"
+    );
+  }
 
-  // loading
-  var regBtn = document.querySelector("#regForm .btn-primary");
-  var origText = regBtn ? regBtn.textContent : "";
+  if (pass.length < 6) {
+    return showCustomAlert(
+      "Помилка",
+      "Пароль мінімум 6 символів.",
+      "error"
+    );
+  }
+
+  // ===== LOADING BUTTON =====
+  const regBtn = document.querySelector("#regForm .btn-primary");
+  const origText = regBtn ? regBtn.textContent : "";
+
   if (regBtn) {
     regBtn.textContent = "Реєстрація...";
     regBtn.disabled = true;
   }
 
-  var result = await apiCall("/auth/register", "POST", {
-    email: email,
-    password: pass,
-    name: firstName + " " + lastName,
-  });
+  try {
+    // ===== API CALL =====
+    const result = await apiCall("/auth/register", "POST", {
+      email: email,
+      password: pass,
+      name: firstName + " " + lastName
+    });
 
-  if (regBtn) {
-    regBtn.textContent = origText;
-    regBtn.disabled = false;
+    // повернути кнопку назад
+    if (regBtn) {
+      regBtn.textContent = origText;
+      regBtn.disabled = false;
+    }
+
+    // ===== ERROR =====
+    if (!result.ok) {
+      return showCustomAlert(
+        "Помилка",
+        result.data?.error || "Помилка реєстрації",
+        "error"
+      );
+    }
+
+    // ===== SUCCESS =====
+    showCustomAlert(
+      "Успіх",
+      "Ви успішно зареєстровані! Зараз відкриється сторінка входу.",
+      "success"
+    );
+
+    // очистити форму
+    document.getElementById("regFirstName").value = "";
+    document.getElementById("regLastName").value = "";
+    document.getElementById("regEmail").value = "";
+    document.getElementById("regPass").value = "";
+
+    // ✅ перезагрузка сторінки
+    setTimeout(() => {
+      window.location.reload();
+    }, 1200);
+
+  } catch (err) {
+    console.error("Register error:", err);
+
+    if (regBtn) {
+      regBtn.textContent = origText;
+      regBtn.disabled = false;
+    }
+
+    showCustomAlert(
+      "Помилка",
+      "Помилка мережі. Спробуйте пізніше.",
+      "error"
+    );
   }
-
-  if (!result.ok) {
-    return showCustomAlert("Помилка", result.data.error || "Помилка реєстрації", "error");
-  }
-
-  // ✅ УСПІШНА РЕЄСТРАЦІЯ (БЕЗ АВТОЛОГІНУ)
-
-  showCustomAlert("Успіх", "Ви успішно зареєстровані! Тепер увійдіть у свій акаунт.", "success");
-
-  // очистити поля
-  document.getElementById("regFirstName").value = "";
-  document.getElementById("regLastName").value = "";
-  document.getElementById("regEmail").value = "";
-  document.getElementById("regPass").value = "";
-
-  // ✅ переключити на форму входу
-  setTimeout(function () {
-    loginForm.style.display = "block";
-    regForm.style.display = "none";
-  }, 10);
 }
 
 function logout() {
