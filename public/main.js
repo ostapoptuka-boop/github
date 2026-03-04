@@ -35,7 +35,8 @@
         let trustMainBalance = parseFloat(localStorage.getItem('trustMainBalance')) || 0.00;
         let trustPortfolio = JSON.parse(localStorage.getItem('trustPortfolio')) || {};
         let trustBuyPrices = JSON.parse(localStorage.getItem('trustBuyPrices')) || {};
-        let isAuth = localStorage.getItem('trustIsAuth') === 'true';
+        // Auth is ONLY valid if we have a token
+        let isAuth = !!(authToken && localStorage.getItem('trustIsAuth') === 'true');
 
         function updateBalanceUI() {
             const profileBal = document.getElementById('profileBalance');
