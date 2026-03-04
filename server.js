@@ -51,6 +51,17 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const adminRoutes = require('./routes/admin');
 
+// Health check / diagnostic
+app.get('/api/health', async (req, res) => {
+    const mongoose = require('mongoose');
+    res.json({
+        status: 'ok',
+        db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+        dbState: mongoose.connection.readyState,
+        time: new Date().toISOString()
+    });
+});
+
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/user', apiLimiter, userRoutes);
 app.use('/api/admin', apiLimiter, adminRoutes);
