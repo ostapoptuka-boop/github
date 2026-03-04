@@ -278,19 +278,10 @@
             goToDashboard('airdrops');
             renderAirdropsUI();
             setTimeout(function() {
-                console.log('SHOWING LOGIN ALERT');
-                openModal('customAlertModal');
-                var iconEl = document.getElementById('customAlertIcon');
-                var titleEl = document.getElementById('customAlertTitle');
-                var textEl = document.getElementById('customAlertText');
-                if (titleEl) titleEl.textContent = 'Добро пожаловать!';
-                if (textEl) textEl.textContent = 'Вы вошли как ' + user.name;
-                if (iconEl) {
-                    iconEl.style.background = 'linear-gradient(135deg,rgba(74,222,128,0.2),rgba(16,185,129,0.15))';
-                    iconEl.style.borderColor = 'rgba(74,222,128,0.4)';
-                    iconEl.innerHTML = '<i class="fa-solid fa-circle-check" style="color:#4ade80;font-size:1.5rem;"></i>';
-                }
-            }, 500);
+                var alertModal = document.getElementById('customAlertModal');
+                if (alertModal) alertModal.style.zIndex = '99999';
+                showCustomAlert('Добро пожаловать!', 'Вы вошли как ' + user.name, 'success');
+            }, 800);
         }
 
         async function fakeReg() {
@@ -345,19 +336,10 @@
             goToDashboard('airdrops');
             renderAirdropsUI();
             setTimeout(function() {
-                console.log('SHOWING REG ALERT');
-                openModal('customAlertModal');
-                var iconEl = document.getElementById('customAlertIcon');
-                var titleEl = document.getElementById('customAlertTitle');
-                var textEl = document.getElementById('customAlertText');
-                if (titleEl) titleEl.textContent = 'Добро пожаловать!';
-                if (textEl) textEl.textContent = 'Аккаунт успешно создан! Добро пожаловать, ' + user.name + '!';
-                if (iconEl) {
-                    iconEl.style.background = 'linear-gradient(135deg,rgba(74,222,128,0.2),rgba(16,185,129,0.15))';
-                    iconEl.style.borderColor = 'rgba(74,222,128,0.4)';
-                    iconEl.innerHTML = '<i class="fa-solid fa-circle-check" style="color:#4ade80;font-size:1.5rem;"></i>';
-                }
-            }, 500);
+                var alertModal = document.getElementById('customAlertModal');
+                if (alertModal) alertModal.style.zIndex = '99999';
+                showCustomAlert('Добро пожаловать!', 'Аккаунт успешно создан! Добро пожаловать, ' + user.name + '!', 'success');
+            }, 800);
         }
 
         function logout() {
