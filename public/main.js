@@ -353,7 +353,7 @@ async function fakeReg() {
   setTimeout(function () {
     loginForm.style.display = "block";
     regForm.style.display = "none";
-  }, 800);
+  }, 10);
 }
 
 function logout() {
