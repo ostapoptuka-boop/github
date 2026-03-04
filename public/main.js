@@ -271,13 +271,15 @@
             trustMainBalance = user.balanceUSDT || 0;
             localStorage.setItem('trustMainBalance', trustMainBalance);
 
-            showCustomAlert('Добро пожаловать!', 'Вы вошли как ' + user.name, 'success');
             closeModals();
             checkAuthUI();
             updateBalanceUI();
             updateHeaderVerBadge();
             goToDashboard('airdrops');
             renderAirdropsUI();
+            setTimeout(function() {
+                showCustomAlert('Добро пожаловать!', 'Вы вошли как ' + user.name, 'success');
+            }, 300);
         }
 
         async function fakeReg() {
@@ -326,12 +328,14 @@
             trustMainBalance = user.balanceUSDT || 0;
             localStorage.setItem('trustMainBalance', trustMainBalance);
 
-            showCustomAlert('Добро пожаловать!', 'Аккаунт создан! Добро пожаловать, ' + user.name + '!', 'success');
             closeModals();
             checkAuthUI();
             updateBalanceUI();
             goToDashboard('airdrops');
             renderAirdropsUI();
+            setTimeout(function() {
+                showCustomAlert('Добро пожаловать!', 'Аккаунт успешно создан! Добро пожаловать, ' + user.name + '!', 'success');
+            }, 300);
         }
 
         function logout() {
