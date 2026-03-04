@@ -315,7 +315,15 @@ async function fakeReg() {
 
   if (pass.length < 6) return showCustomAlert("Помилка", "Пароль мінімум 6 символів.", "error");
 
-  // ✅ показуємо одразу, що реєстрація розпочалася
+  // 🔹 лоадінг кнопки
+  const regBtn = document.querySelector("#regForm .btn-primary");
+  const origText = regBtn ? regBtn.textContent : "";
+  if (regBtn) {
+    regBtn.textContent = "Реєстрація...";
+    regBtn.disabled = true;
+  }
+
+  // ✅ показуємо alert успіху одразу
   showCustomAlert("Успіх", "Ви успішно зареєстровані! Тепер увійдіть у свій акаунт.", "success");
 
   // очистити поля
@@ -330,7 +338,7 @@ async function fakeReg() {
     regForm.style.display = "none";
   }, 1);
 
-  // 🔹 виконуємо API виклик у фоні без блокування UI
+  // 🔹 API виклик у фоні
   (async () => {
     const result = await apiCall("/auth/register", "POST", {
       email,
@@ -338,8 +346,13 @@ async function fakeReg() {
       name: firstName + " " + lastName,
     });
 
+    // після завершення запиту відновлюємо кнопку
+    if (regBtn) {
+      regBtn.textContent = origText;
+      regBtn.disabled = false;
+    }
+
     if (!result.ok) {
-      // якщо сервер відповів помилкою, показати повідомлення
       showCustomAlert("Помилка", result.data.error || "Помилка реєстрації", "error");
     }
   })();
