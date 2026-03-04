@@ -306,107 +306,43 @@ async function fakeReg() {
   const email = document.getElementById("regEmail").value.trim();
   const pass = document.getElementById("regPass").value;
 
-  // ===== VALIDATION =====
   const nameRegex = /^[a-zA-Zа-яА-ЯёЁіІїЇєЄґҐ]{2,30}$/;
-
-  if (!nameRegex.test(firstName)) {
-    return showCustomAlert(
-      "Помилка",
-      "Введіть справжнє імʼя (тільки букви).",
-      "error"
-    );
-  }
-
-  if (!nameRegex.test(lastName)) {
-    return showCustomAlert(
-      "Помилка",
-      "Введіть справжнє прізвище (тільки букви).",
-      "error"
-    );
-  }
+  if (!nameRegex.test(firstName)) return showCustomAlert("Помилка", "Введіть справжнє Імʼя (тільки букви).", "error");
+  if (!nameRegex.test(lastName)) return showCustomAlert("Помилка", "Введіть справжнє Прізвище (тільки букви).", "error");
 
   const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,10}$/;
+  if (!emailRegex.test(email)) return showCustomAlert("Помилка", "Введіть правильний Email.", "error");
 
-  if (!emailRegex.test(email)) {
-    return showCustomAlert(
-      "Помилка",
-      "Введіть правильний Email.",
-      "error"
-    );
-  }
+  if (pass.length < 6) return showCustomAlert("Помилка", "Пароль мінімум 6 символів.", "error");
 
-  if (pass.length < 6) {
-    return showCustomAlert(
-      "Помилка",
-      "Пароль мінімум 6 символів.",
-      "error"
-    );
-  }
+  // ✅ показуємо одразу, що реєстрація розпочалася
+  showCustomAlert("Успіх", "Ви успішно зареєстровані! Тепер увійдіть у свій акаунт.", "success");
 
-  // ===== LOADING BUTTON =====
-  const regBtn = document.querySelector("#regForm .btn-primary");
-  const origText = regBtn ? regBtn.textContent : "";
+  // очистити поля
+  document.getElementById("regFirstName").value = "";
+  document.getElementById("regLastName").value = "";
+  document.getElementById("regEmail").value = "";
+  document.getElementById("regPass").value = "";
 
-  if (regBtn) {
-    regBtn.textContent = "Реєстрація...";
-    regBtn.disabled = true;
-  }
+  // переключити на форму входу
+  setTimeout(() => {
+    loginForm.style.display = "block";
+    regForm.style.display = "none";
+  }, 1);
 
-  try {
-    // ===== API CALL =====
+  // 🔹 виконуємо API виклик у фоні без блокування UI
+  (async () => {
     const result = await apiCall("/auth/register", "POST", {
-      email: email,
+      email,
       password: pass,
-      name: firstName + " " + lastName
+      name: firstName + " " + lastName,
     });
 
-    // повернути кнопку назад
-    if (regBtn) {
-      regBtn.textContent = origText;
-      regBtn.disabled = false;
-    }
-
-    // ===== ERROR =====
     if (!result.ok) {
-      return showCustomAlert(
-        "Помилка",
-        result.data?.error || "Помилка реєстрації",
-        "error"
-      );
+      // якщо сервер відповів помилкою, показати повідомлення
+      showCustomAlert("Помилка", result.data.error || "Помилка реєстрації", "error");
     }
-
-    // ===== SUCCESS =====
-    showCustomAlert(
-      "Успіх",
-      "Ви успішно зареєстровані! Зараз відкриється сторінка входу.",
-      "success"
-    );
-
-    // очистити форму
-    document.getElementById("regFirstName").value = "";
-    document.getElementById("regLastName").value = "";
-    document.getElementById("regEmail").value = "";
-    document.getElementById("regPass").value = "";
-
-    // ✅ перезагрузка сторінки
-    setTimeout(() => {
-      window.location.reload();
-    }, 1200);
-
-  } catch (err) {
-    console.error("Register error:", err);
-
-    if (regBtn) {
-      regBtn.textContent = origText;
-      regBtn.disabled = false;
-    }
-
-    showCustomAlert(
-      "Помилка",
-      "Помилка мережі. Спробуйте пізніше.",
-      "error"
-    );
-  }
+  })();
 }
 
 function logout() {
